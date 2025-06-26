@@ -9,38 +9,44 @@ frames from the original video frames.
 """
 # todo refractory period for pixel
 
-import glob
 import argparse
+import glob
 import importlib
+import logging
+import os
 import sys
+import time
+from tempfile import TemporaryDirectory
+from typing import Any, Optional
 
 import argcomplete
 import cv2
 import numpy as np
-import os
-from tempfile import TemporaryDirectory
+import torch
+import v2ecore.desktop as desktop
 from engineering_notation import EngNumber as eng  # only from pip
 from tqdm import tqdm
-
-import torch
-
-import v2ecore.desktop as desktop
 from v2ecore.base_synthetic_input import base_synthetic_input
-from v2ecore.v2e_utils import all_images, read_image, \
-    check_lowpass, v2e_quit
-from v2ecore.v2e_utils import set_output_dimension
-from v2ecore.v2e_utils import set_output_folder
-from v2ecore.v2e_utils import ImageFolderReader
-from v2ecore.v2e_args import v2e_args, write_args_info, SmartFormatter
-from v2ecore.v2e_args import v2e_check_dvs_exposure_args
-from v2ecore.v2e_args import NO_SLOWDOWN
+from v2ecore.emulator import EventEmulator
 from v2ecore.renderer import EventRenderer, ExposureMode
 from v2ecore.slomo import SuperSloMo
-from v2ecore.emulator import EventEmulator
-from v2ecore.v2e_utils import inputVideoFileDialog
-import logging
-import time
-from typing import Optional, Any
+from v2ecore.v2e_args import (
+    NO_SLOWDOWN,
+    SmartFormatter,
+    v2e_args,
+    v2e_check_dvs_exposure_args,
+    write_args_info,
+)
+from v2ecore.v2e_utils import (
+    ImageFolderReader,
+    all_images,
+    check_lowpass,
+    inputVideoFileDialog,
+    read_image,
+    set_output_dimension,
+    set_output_folder,
+    v2e_quit,
+)
 
 logging.basicConfig()
 root = logging.getLogger()
@@ -659,7 +665,7 @@ def main():
                 inputWidth = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                 inputHeight = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                 inputChannels = 1 if int(cap.get(cv2.CAP_PROP_MONOCHROME)) \
-                    else 3
+                    else 3 # gray or RGB
             logger.info(
                 'Input video {} has W={} x H={} frames each with {} channels'
                 .format(input_file, inputWidth, inputHeight, inputChannels))
@@ -726,7 +732,7 @@ def main():
                     # TODO would break resize if input is gray frames
                     # convert RGB frame into luminance.
                     inputVideoFrame = cv2.cvtColor(
-                        inputVideoFrame, cv2.COLOR_BGR2GRAY)  # much faster
+                        inputVideoFrame, cv2.COLOR_BGR2GRAY)  # much faster # not necessary if input is already gray
 
                     # TODO add vid_orig output if not using slomo
 

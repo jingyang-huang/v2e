@@ -6,6 +6,7 @@ notebook/
 *.sh
 aedat-text-test.txt
 input/*
+output/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

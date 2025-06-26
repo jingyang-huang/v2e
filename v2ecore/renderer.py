@@ -1,17 +1,23 @@
-import numpy as np
-import cv2
-import os
 import atexit
 import logging
-from tqdm import tqdm
-from typing import List
-from engineering_notation import EngNumber  # only from pip
+import os
 from enum import Enum
+from typing import List
+
+import cv2
+import numpy as np
+from engineering_notation import EngNumber  # only from pip
 from numba import jit, njit
+from tqdm import tqdm
 
 from v2ecore.emulator import EventEmulator
-from v2ecore.v2e_utils import video_writer, read_image, checkAddSuffix, v2e_quit
-from v2ecore.v2e_utils import hist2d_numba_seq
+from v2ecore.v2e_utils import (
+    checkAddSuffix,
+    hist2d_numba_seq,
+    read_image,
+    v2e_quit,
+    video_writer,
+)
 
 logger = logging.getLogger(__name__)
 

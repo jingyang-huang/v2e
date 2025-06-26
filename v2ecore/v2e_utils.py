@@ -1,16 +1,16 @@
+import glob
 import logging
 import os
 import sys
 import tempfile
-
-import numpy as np
-import cv2
-import glob
-import easygui
-from tkinter import filedialog
-from numba import njit
-from engineering_notation import EngNumber as eng
 from pathlib import Path
+from tkinter import filedialog
+
+import cv2
+import easygui
+import numpy as np
+from engineering_notation import EngNumber as eng
+from numba import njit
 
 # adjust for different sensor than DAVIS346
 DVS_WIDTH, DVS_HEIGHT = 346, 260
@@ -275,7 +275,7 @@ def checkAddSuffix(path: str, suffix: str):
 
 
 def video_writer(output_path, height, width,
-                 frame_rate=30, fourcc=OUTPUT_VIDEO_CODEC_FOURCC):
+                 frame_rate=100, fourcc=OUTPUT_VIDEO_CODEC_FOURCC):
     """ Return a video writer.
 
     Parameters
@@ -362,8 +362,8 @@ def read_aedat_txt_events(fname: str):
         ts is in seconds
         pol is 0,1
     """
-    import pandas as pd
     import numpy as np
+    import pandas as pd
     dat = pd.read_table(
         fname,
         sep=' ',  # field separator

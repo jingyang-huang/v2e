@@ -16,12 +16,15 @@ import numpy as np
 import torch  # https://pytorch.org/docs/stable/torch.html
 from screeninfo import get_monitors
 
-from v2ecore.emulator_utils import compute_event_map, compute_photoreceptor_noise_voltage
-from v2ecore.emulator_utils import generate_shot_noise
-from v2ecore.emulator_utils import lin_log
-from v2ecore.emulator_utils import low_pass_filter
-from v2ecore.emulator_utils import rescale_intensity_frame
-from v2ecore.emulator_utils import subtract_leak_current
+from v2ecore.emulator_utils import (
+    compute_event_map,
+    compute_photoreceptor_noise_voltage,
+    generate_shot_noise,
+    lin_log,
+    low_pass_filter,
+    rescale_intensity_frame,
+    subtract_leak_current,
+)
 from v2ecore.output.ae_text_output import DVSTextOutput
 from v2ecore.output.aedat2_output import AEDat2Output
 from v2ecore.output.aedat4_output import AEDat4Output
@@ -1136,8 +1139,10 @@ if __name__ == "__main__":
         device="cuda",
     )
 
-    cap = cv2.VideoCapture(
-        os.path.join(os.environ["HOME"], "v2e_tutorial_video.avi"))
+    # cap = cv2.VideoCapture(
+    #     os.path.join(os.environ["HOME"], "v2e_tutorial_video.avi"))
+    
+    cap = cv2.VideoCapture("/home/hjy/HJY/Codes/E3CATCH_ws/src/v2e/data/mine/output_1000fps_lossless.mp4")
 
     # num of frames
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -1188,6 +1193,7 @@ if __name__ == "__main__":
                       "Event Rate: {:.2f}KEV/s".format(
                     num_events, event_time, start_t, end_t,
                     event_rate_kevs))
+                
             idx += 1
             print("=" * 50)
         else:

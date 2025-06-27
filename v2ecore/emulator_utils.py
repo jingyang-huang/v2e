@@ -51,7 +51,7 @@ def rescale_intensity_frame(new_frame):
     make sure we get no zero time constants
     limit max time constant to ~1/10 of white intensity level
     """
-    return (new_frame+20)/275.
+    return (new_frame+20)/275.  # 255+20 = 275
 
 
 def low_pass_filter(
@@ -323,9 +323,14 @@ def generate_shot_noise(
     # multiplying by the delta time of this frame,
     # and multiplying by the intensity factor
     # division by num_iter is correct if generate_shot_noise is called outside the iteration loop, unless num_iter=1 for calling outside loop
-    shot_noise_factor = (
-        (shot_noise_rate_hz/2)*delta_time) * \
-        ((shot_noise_inten_factor-1)*inten01+1) # =1 for inten=0 and SHOT_NOISE_INTEN_FACTOR for inten=1 # TODO check this logic again, the shot noise rate should increase with intensity but factor is negative here
+    # shot_noise_factor = (
+    #     (shot_noise_rate_hz/2)*delta_time) * \
+    #     ((shot_noise_inten_factor-1)*inten01+1) # =1 for inten=0 and SHOT_NOISE_INTEN_FACTOR for inten=1 # TODO check this logic again, the shot noise rate should increase with intensity but factor is negative here
+
+    # HJY fix https://github.com/SensorsINI/v2e/issues/74
+    inten_factor = 1 - (1 - shot_noise_inten_factor) * inten01 # According to intensity, it ranges from 1 to shot_noise_inten_factor=0.25
+    inten_factor = inten_factor / torch.mean(inten_factor)  # Normalize to make the total number of noise events correct
+    shot_noise_factor = ((shot_noise_rate_hz/2)*delta_time) * inten_factor
 
     # probability for each pixel is
     # dt*rate*nom_thres/actual_thres.

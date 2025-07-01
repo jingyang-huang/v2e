@@ -53,6 +53,7 @@ class EventRenderer(object):
         # when not using constant_time
         frame_times_suffix="-frame_times.txt",
         avi_frame_rate=30,
+        mt_image_rate = 100,
     ):
         """Init.
 
@@ -89,7 +90,7 @@ class EventRenderer(object):
         self.event_count = None
         self.frameIntevalS = None
         self.avi_frame_rate = avi_frame_rate
-
+        self.mt_image_rate = mt_image_rate
         self.area_counts = None  # 2d array of counts
         self.area_count = None
         self.area_dimension = area_dimension
@@ -356,12 +357,12 @@ class EventRenderer(object):
                         cv2.cvtColor((img * 255).astype(np.uint8), cv2.COLOR_GRAY2BGR)
                     )
 
-                    # image_path = self.output_path + "/images"
-                    # os.makedirs(image_path, exist_ok=True)
-                    # image_name = os.path.join(
-                    #     image_path, f"{self.numFramesWritten:06d}.png"
-                    # )
-                    # cv2.imwrite(image_name, (img * 255).astype(np.uint8))
+                    image_path = self.output_path + "/images"
+                    os.makedirs(image_path, exist_ok=True)
+                    image_name = os.path.join(
+                        image_path, f"{self.numFramesWritten:06d}.png"
+                    )
+                    cv2.imwrite(image_name, (img * 255).astype(np.uint8))
 
                     t = None
 

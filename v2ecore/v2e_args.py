@@ -1,10 +1,10 @@
 import argparse
-import os
 import logging
+import os
 import time
 from pathlib import Path
-from v2ecore.emulator import EventEmulator
 
+from v2ecore.emulator import EventEmulator
 from v2ecore.renderer import ExposureMode
 
 logger = logging.getLogger(__name__)
@@ -86,7 +86,11 @@ def v2e_args(parser):
         "--avi_frame_rate", type=int, default=30,
         help="frame rate of output AVI video files; "
              "only affects playback rate. ")
-
+    outGroupGeneral.add_argument(
+        "--mt_image_rate", type=int, default=100,
+        help="frame rate of output mean time image files; "
+             "only affects playback rate. ")
+    
     outGroupGeneral.add_argument(
         "--output_in_place", default=False, type=str2bool,
         const=True, nargs='?',

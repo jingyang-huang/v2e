@@ -48,6 +48,10 @@ from v2ecore.v2e_utils import (
     v2e_quit,
 )
 
+from e3catch.utils.gray_tools import (
+    GrayImagesTools,
+)
+
 logging.basicConfig()
 root = logging.getLogger()
 LOGGING_LEVEL=logging.INFO
@@ -472,17 +476,6 @@ def main():
                     'source video will be automatically upsampled to '
                     'limit maximum interframe motion to 1 pixel')
 
-        # the SloMo model, set no SloMo model if no slowdown
-        if not disable_slomo and \
-                (auto_timestamp_resolution or slowdown_factor != NO_SLOWDOWN):
-            slomo = SuperSloMo(
-                model=args.slomo_model,
-                auto_upsample=auto_timestamp_resolution,
-                upsampling_factor=slowdown_factor,
-                video_path=None if args.skip_video_output else output_folder,
-                vid_orig=None if args.skip_video_output else vid_orig,
-                vid_slomo=None if args.skip_video_output else vid_slomo,
-                preview=preview, batch_size=batch_size)
 
     if not synthetic_input and not auto_timestamp_resolution:
         logger.info(
@@ -688,113 +681,25 @@ def main():
                 emulator.output_width = output_width
                 emulator.output_height = output_height
 
-            logger.info(
-                f'*** Stage 1/3: '
-                f'Resizing {srcNumFramesToBeProccessed} input frames '
-                f'to output size '
-                f'(with possible RGB to luma conversion)')
-            for inputFrameIndex in tqdm(
-                    range(srcNumFramesToBeProccessed),
-                    desc='rgb2luma', unit='fr'):
-                # read frame
-                ret, inputVideoFrame = cap.read()
-                num_frames+=1
-                if ret==False:
-                    logger.warning(f'could not read frame {inputFrameIndex} from {cap}')
-                    continue
-                if inputVideoFrame is None or np.shape(inputVideoFrame) == ():
-                    logger.warning(f'empty video frame number {inputFrameIndex} in {cap}')
-                    continue
-                if not ret or inputFrameIndex + start_frame > stop_frame:
-                    break
-
-                if args.crop is not None:
-                    # crop the frame, indices are y,x, UL is 0,0
-                    if c_l+(c_r if c_r is not None else 0)>=inputWidth:
-                        logger.error(f'left {c_l}+ right crop {c_r} is larger than image width {inputWidth}')
-                        v2e_quit(1)
-                    if c_t+(c_b if c_b is not None else 0)>=inputHeight:
-                        logger.error(f'top {c_t}+ bottom crop {c_b} is larger than image height {inputHeight}')
-                        v2e_quit(1)
-
-                    inputVideoFrame= inputVideoFrame[c_t:c_b, c_l:c_r] # https://stackoverflow.com/questions/15589517/how-to-crop-an-image-in-opencv-using-python
-
-                if output_height and output_width and \
-                        (inputHeight != output_height or
-                         inputWidth != output_width):
-                    dim = (output_width, output_height)
-                    (fx, fy) = (float(output_width) / inputWidth,
-                                float(output_height) / inputHeight)
-                    inputVideoFrame = cv2.resize(
-                        src=inputVideoFrame, dsize=dim, fx=fx, fy=fy,
-                        interpolation=cv2.INTER_AREA)
-                if inputChannels == 3:  # color
-                    if inputFrameIndex == 0:  # print info once
-                        logger.info(
-                            '\nConverting input frames from RGB color to luma')
-                    # TODO would break resize if input is gray frames
-                    # convert RGB frame into luminance.
-                    inputVideoFrame = cv2.cvtColor(
-                        inputVideoFrame, cv2.COLOR_BGR2GRAY)  # much faster # not necessary if input is already gray
-
-                    # TODO add vid_orig output if not using slomo
-
-
-                # save frame into numpy records
-                save_path = os.path.join(
-                    source_frames_dir, str(inputFrameIndex).zfill(8) + ".npy")
-                np.save(save_path, inputVideoFrame)
-                # print("Writing source frame {}".format(save_path), end="\r")
-            cap.release()
-
+            
             with TemporaryDirectory() as interpFramesFolder:
-                interpTimes = None
-                # make input to slomo
-                if slomo is not None and (auto_timestamp_resolution or slowdown_factor != NO_SLOWDOWN):
-                    # interpolated frames are stored to tmpfolder as
-                    # 1.png, 2.png, etc
-
-                    logger.info(
-                        f'*** Stage 2/3: SloMo upsampling from '
-                        f'{source_frames_dir}')
-                    interpTimes, avgUpsamplingFactor = slomo.interpolate(
-                        source_frames_dir, interpFramesFolder,
-                        (output_width, output_height))
-                    avgTs = srcFrameIntervalS / avgUpsamplingFactor
-                    logger.info(
-                        'SloMo average upsampling factor={:5.2f}; '
-                        'average DVS timestamp resolution={}s'
-                        .format(avgUpsamplingFactor, eng(avgTs)))
-                    # check for undersampling wrt the
-                    # photoreceptor lowpass filtering
-
-                    if cutoff_hz > 0:
-                        logger.info('Using auto_timestamp_resolution. '
-                                       'checking if cutoff hz is ok given '
-                                       'sample rate {}'.format(1/avgTs))
-                        check_lowpass(cutoff_hz, 1/avgTs, logger)
-
-                    # read back to memory
-                    interpFramesFilenames = all_images(interpFramesFolder)
-                    # number of frames
-                    n = len(interpFramesFilenames)
-                else:
-                    logger.info(
-                        f'*** Stage 2/3:turning npy frame files to png '
-                        f'from {source_frames_dir}')
-                    interpFramesFilenames = []
-                    n = 0
-                    src_files = sorted(
-                        glob.glob("{}".format(source_frames_dir) + "/*.npy"))
-                    for frame_idx, src_file_path in tqdm(
-                            enumerate(src_files), desc='npy2png', unit='fr'):
-                        src_frame = np.load(src_file_path)
-                        tgt_file_path = os.path.join(
-                            interpFramesFolder, str(frame_idx) + ".png")
-                        interpFramesFilenames.append(tgt_file_path)
-                        n += 1
-                        cv2.imwrite(tgt_file_path, src_frame)
-                    interpTimes = np.array(range(n))
+                GrayImagesTools.load_grayscale_sequence(file_path)
+                logger.info(
+                    f'*** Stage 2/3:turning npy frame files to png '
+                    f'from {source_frames_dir}')
+                interpFramesFilenames = []
+                n = 0
+                src_files = sorted(
+                    glob.glob("{}".format(source_frames_dir) + "/*.npy"))
+                for frame_idx, src_file_path in tqdm(
+                        enumerate(src_files), desc='npy2png', unit='fr'):
+                    src_frame = np.load(src_file_path)
+                    tgt_file_path = os.path.join(
+                        interpFramesFolder, str(frame_idx) + ".png")
+                    interpFramesFilenames.append(tgt_file_path)
+                    n += 1
+                    cv2.imwrite(tgt_file_path, src_frame)
+                interpTimes = np.array(range(n))
 
                 # compute times of output integrated frames
                 nFrames = len(interpFramesFilenames)
@@ -804,23 +709,6 @@ def main():
                     np.max(interpTimes)-np.min(interpTimes))
                 # compute actual times from video times
                 interpTimes = f*interpTimes
-                # debug
-                if slomo_stats_plot:
-                    from matplotlib import pyplot as plt  # TODO debug
-                    dt = np.diff(interpTimes)
-                    fig = plt.figure()
-                    ax1 = fig.add_subplot(111)
-                    ax1.set_title(
-                        'Slo-Mo frame interval stats (close to continue)')
-                    ax1.plot(interpTimes)
-                    ax1.plot(interpTimes, 'x')
-                    ax1.set_xlabel('frame')
-                    ax1.set_ylabel('frame time (s)')
-                    ax2 = ax1.twinx()
-                    ax2.plot(dt*1e3)
-                    ax2.set_ylabel('frame interval (ms)')
-                    logger.info('close plot to continue')
-                    fig.show()
 
                 # array to batch events for rendering to DVS frames
                 events = np.zeros((0, 4), dtype=np.float32)
